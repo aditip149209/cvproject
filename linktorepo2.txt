@@ -1,0 +1,14 @@
+https://github.com/aditip149209/cvproject.git
+
+Aditi
+- Pipeline architecture and orchestration
+- Stage 2 model training/evaluation pipeline
+- Final integration and documentation of workflow progress
+
+Sanchit
+- Data preprocessing and dataset structuring approach
+- Validation of split strategy and data flow assumptions
+
+Prathyanga
+- Feature engineering and model experimentation support
+- Random forest and baseline model-related analysis
