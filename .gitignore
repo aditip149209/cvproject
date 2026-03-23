@@ -76,6 +76,8 @@ experiments/
 wandb/
 mlruns/
 tensorboard/
+pipeline_output/*
+!pipeline_output/README.md
 
 # Image/Video files (optional - uncomment if needed)
 # *.jpg

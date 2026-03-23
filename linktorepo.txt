@@ -1,0 +1,5 @@
+https://github.com/aditip149209/cvproject.git
+
+Aditi: Constructed neural network model
+Sanchit: Data preprocessing and split 
+Prathyanga: Data preprocessing, construction of random forest classifier model 
