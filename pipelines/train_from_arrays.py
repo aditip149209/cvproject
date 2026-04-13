@@ -105,9 +105,8 @@ def main() -> None:
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # ===== PCA (KEY IMPROVEMENT) =====
+    # ===== PCA =====
     from sklearn.decomposition import PCA
-
     pca = PCA(n_components=0.95)
     X_train_pca = pca.fit_transform(X_train_scaled)
     X_test_pca = pca.transform(X_test_scaled)
@@ -136,10 +135,16 @@ def main() -> None:
     print("KMeans Accuracy:", accuracy_score(y_test, mapped_preds))
     print(classification_report(y_test, mapped_preds, zero_division=0))
 
+    # ✅ Confusion Matrix (KMeans)
+    from sklearn.metrics import confusion_matrix
+    cm_kmeans = confusion_matrix(y_test, mapped_preds)
+    print("KMeans Confusion Matrix:\n", cm_kmeans)
+
     # SAVE KMEANS
     kmeans_results = {
         "accuracy": float(accuracy_score(y_test, mapped_preds)),
-        "classification_report": classification_report(y_test, mapped_preds, output_dict=True, zero_division=0)
+        "classification_report": classification_report(y_test, mapped_preds, output_dict=True, zero_division=0),
+        "confusion_matrix": cm_kmeans.tolist()
     }
 
     with open(output_dir / "kmeans_metrics.json", "w") as f:
@@ -160,10 +165,15 @@ def main() -> None:
     print("KNN Accuracy:", accuracy_score(y_test, knn_preds))
     print(classification_report(y_test, knn_preds, zero_division=0))
 
+    # ✅ Confusion Matrix (KNN)
+    cm_knn = confusion_matrix(y_test, knn_preds)
+    print("KNN Confusion Matrix:\n", cm_knn)
+
     # SAVE KNN
     knn_results = {
         "accuracy": float(accuracy_score(y_test, knn_preds)),
-        "classification_report": classification_report(y_test, knn_preds, output_dict=True, zero_division=0)
+        "classification_report": classification_report(y_test, knn_preds, output_dict=True, zero_division=0),
+        "confusion_matrix": cm_knn.tolist()
     }
 
     with open(output_dir / "knn_metrics.json", "w") as f:
@@ -237,6 +247,6 @@ def main() -> None:
     print("\nTraining pipeline completed.")
     print(f"Best model: {best_name}")
     print(f"Best accuracy: {best_acc:.4f}")
-    print(f"Artifacts written to: {output_dir}")
+    print(f"Artifacts written to: {output_dir}")   
 if __name__ == "__main__":
     main()
