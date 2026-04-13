@@ -20,6 +20,10 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, Tuple
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report
 
 import joblib
 import numpy as np
@@ -42,7 +46,6 @@ def load_arrays(arrays_dir: Path) -> Tuple[np.ndarray, np.ndarray, np.ndarray, n
     y_test = np.load(arrays_dir / "y_test.npy")
 
     return X_train, y_train, X_test, y_test
-
 
 def evaluate_model(model, X_train, y_train, X_test, y_test) -> Dict[str, object]:
     model.fit(X_train, y_train)
@@ -77,6 +80,96 @@ def main() -> None:
 
     X_train, y_train, X_test, y_test = load_arrays(arrays_dir)
 
+    import numpy as np
+
+    # ===== FEATURE ENGINEERING =====
+    X_train = np.hstack((
+        X_train,
+        np.mean(X_train, axis=1, keepdims=True),
+        np.std(X_train, axis=1, keepdims=True),
+        np.min(X_train, axis=1, keepdims=True),
+        np.max(X_train, axis=1, keepdims=True)
+    ))
+
+    X_test = np.hstack((
+        X_test,
+        np.mean(X_test, axis=1, keepdims=True),
+        np.std(X_test, axis=1, keepdims=True),
+        np.min(X_test, axis=1, keepdims=True),
+        np.max(X_test, axis=1, keepdims=True)
+    ))
+
+    # ===== SCALING =====
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # ===== PCA (KEY IMPROVEMENT) =====
+    from sklearn.decomposition import PCA
+
+    pca = PCA(n_components=0.95)
+    X_train_pca = pca.fit_transform(X_train_scaled)
+    X_test_pca = pca.transform(X_test_scaled)
+
+    print("Original features:", X_train.shape[1])
+    print("Reduced features (PCA):", X_train_pca.shape[1])
+
+    # ================= KMEANS =================
+    print("\n===== KMEANS CLUSTERING =====")
+
+    kmeans = KMeans(n_clusters=3, n_init=20, random_state=42)
+    kmeans.fit(X_train_pca)
+
+    cluster_preds = kmeans.predict(X_test_pca)
+
+    from scipy.stats import mode
+    labels = {}
+
+    for i in range(3):
+        mask = (cluster_preds == i)
+        if np.sum(mask) > 0:
+            labels[i] = mode(y_test[mask], keepdims=True)[0][0]
+
+    mapped_preds = [labels.get(c, 0) for c in cluster_preds]
+
+    print("KMeans Accuracy:", accuracy_score(y_test, mapped_preds))
+    print(classification_report(y_test, mapped_preds, zero_division=0))
+
+    # SAVE KMEANS
+    kmeans_results = {
+        "accuracy": float(accuracy_score(y_test, mapped_preds)),
+        "classification_report": classification_report(y_test, mapped_preds, output_dict=True, zero_division=0)
+    }
+
+    with open(output_dir / "kmeans_metrics.json", "w") as f:
+        json.dump(kmeans_results, f, indent=2)
+
+    # ================= KNN =================
+    print("\n===== KNN CLASSIFIER =====")
+
+    knn = KNeighborsClassifier(
+        n_neighbors=7,
+        weights='distance',
+        metric='minkowski'
+    )
+
+    knn.fit(X_train_pca, y_train)
+    knn_preds = knn.predict(X_test_pca)
+
+    print("KNN Accuracy:", accuracy_score(y_test, knn_preds))
+    print(classification_report(y_test, knn_preds, zero_division=0))
+
+    # SAVE KNN
+    knn_results = {
+        "accuracy": float(accuracy_score(y_test, knn_preds)),
+        "classification_report": classification_report(y_test, knn_preds, output_dict=True, zero_division=0)
+    }
+
+    with open(output_dir / "knn_metrics.json", "w") as f:
+        json.dump(knn_results, f, indent=2)
+
+    # ================= EXISTING MODELS =================
     models = {
         "svm_rbf": SVC(kernel="rbf", C=1.0, gamma="scale", random_state=args.random_seed),
         "random_forest": RandomForestClassifier(
@@ -141,11 +234,9 @@ def main() -> None:
     with (output_dir / "report.txt").open("w", encoding="utf-8") as f:
         f.write("\n".join(report_lines) + "\n")
 
-    print("Training pipeline completed.")
+    print("\nTraining pipeline completed.")
     print(f"Best model: {best_name}")
     print(f"Best accuracy: {best_acc:.4f}")
     print(f"Artifacts written to: {output_dir}")
-
-
 if __name__ == "__main__":
     main()
