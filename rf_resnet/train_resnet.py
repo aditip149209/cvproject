@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from pathlib import Path
+import json
 from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
 
@@ -11,6 +13,8 @@ epochs = 5
 lr = 0.001
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+models_dir = Path("pipeline_output/training/models")
+models_dir.mkdir(parents=True, exist_ok=True)
 
 # Transforms
 transform = transforms.Compose([
@@ -54,5 +58,15 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss:.4f}")
 
 # Save model
-torch.save(model.state_dict(), "models/resnet18.pth")
-print("✅ Model saved!")
+weights_path = models_dir / "resnet18_state_dict.pth"
+torch.save(model.state_dict(), weights_path)
+
+torchscript_model = torch.jit.script(model.cpu())
+torchscript_path = models_dir / "resnet18_torchscript.pt"
+torchscript_model.save(str(torchscript_path))
+
+with (models_dir / "resnet18_classes.json").open("w", encoding="utf-8") as f:
+    json.dump({"classes": train_dataset.classes}, f, indent=2)
+
+print(f"✅ Saved PyTorch state_dict: {weights_path}")
+print(f"✅ Saved TorchScript model: {torchscript_path}")

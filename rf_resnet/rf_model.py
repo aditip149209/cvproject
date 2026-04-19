@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+from pathlib import Path
+import json
 from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
 from sklearn.ensemble import RandomForestClassifier
@@ -8,6 +10,8 @@ import joblib
 
 # Device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+models_dir = Path("pipeline_output/training/models")
+models_dir.mkdir(parents=True, exist_ok=True)
 
 # Transform
 transform = transforms.Compose([
@@ -70,6 +74,27 @@ cm = confusion_matrix(y_test, y_pred)
 print("\n✅ Random Forest Accuracy:", acc)
 print("\n📊 Classification Report:\n", report)
 print("\n🧩 Confusion Matrix:\n", cm)
-joblib.dump(rf, "models/random_forest.pkl")
 
-print("✅ Random Forest model saved!")
+rf_path = models_dir / "rf_on_resnet_features.pkl"
+joblib.dump(rf, rf_path)
+
+feature_extractor_path = models_dir / "resnet18_feature_extractor_state_dict.pth"
+torch.save(model.state_dict(), feature_extractor_path)
+
+with (models_dir / "rf_on_resnet_metadata.json").open("w", encoding="utf-8") as f:
+    json.dump(
+        {
+            "classes": train_dataset.classes,
+            "accuracy": float(acc),
+            "transform": {
+                "resize": [224, 224],
+                "to_tensor": True,
+            },
+            "feature_extractor": "resnet18_without_fc",
+        },
+        f,
+        indent=2,
+    )
+
+print(f"✅ Random Forest model saved: {rf_path}")
+print(f"✅ Feature extractor weights saved: {feature_extractor_path}")

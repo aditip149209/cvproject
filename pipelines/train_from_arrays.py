@@ -77,6 +77,8 @@ def main() -> None:
     arrays_dir = args.arrays_dir.resolve()
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    models_dir = output_dir / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
 
     X_train, y_train, X_test, y_test = load_arrays(arrays_dir)
 
@@ -150,11 +152,19 @@ def main() -> None:
     with open(output_dir / "kmeans_metrics.json", "w") as f:
         json.dump(kmeans_results, f, indent=2)
 
+    joblib.dump(kmeans, models_dir / "kmeans_pca.pkl")
+    with (models_dir / "kmeans_cluster_to_label.json").open("w", encoding="utf-8") as f:
+        json.dump({"mapping": {str(k): int(v) for k, v in labels.items()}}, f, indent=2)
+
     # ================= KNN =================
     print("\n===== KNN CLASSIFIER =====")
 
+    knn_neighbors = min(7, len(X_train_pca))
+    if knn_neighbors < 1:
+        raise RuntimeError("KNN cannot be trained because X_train_pca is empty.")
+
     knn = KNeighborsClassifier(
-        n_neighbors=7,
+        n_neighbors=knn_neighbors,
         weights='distance',
         metric='minkowski'
     )
@@ -178,6 +188,8 @@ def main() -> None:
 
     with open(output_dir / "knn_metrics.json", "w") as f:
         json.dump(knn_results, f, indent=2)
+
+    joblib.dump(knn, models_dir / "knn_pca.pkl")
 
     # ================= EXISTING MODELS =================
     models = {
@@ -210,6 +222,7 @@ def main() -> None:
     for model_name, model in models.items():
         result = evaluate_model(model, X_train, y_train, X_test, y_test)
         metrics["models"][model_name] = result
+        joblib.dump(model, models_dir / f"{model_name}.pkl")
         if result["accuracy"] > best_acc:
             best_acc = result["accuracy"]
             best_name = model_name
@@ -219,6 +232,17 @@ def main() -> None:
     best_model = models[best_name]
     best_model.fit(X_train, y_train)
     joblib.dump(best_model, output_dir / "best_model.joblib")
+    joblib.dump(best_model, output_dir / "best_model.pkl")
+
+    # Persist preprocessors and feature recipe for cross-repo inference.
+    preprocessing_bundle = {
+        "feature_engineering": {
+            "append_row_stats": ["mean", "std", "min", "max"],
+        },
+        "scaler": scaler,
+        "pca": pca,
+    }
+    joblib.dump(preprocessing_bundle, models_dir / "preprocessing_bundle.pkl")
 
     metrics["best_model"] = best_name
     metrics["best_accuracy"] = float(best_acc)
