@@ -2,7 +2,7 @@ import torch
 from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
 import torch.nn as nn
-from utils import evaluate_model
+from utils_resnet import evaluate_model
 
 # Config
 data_dir = "split_data/test"
@@ -29,6 +29,6 @@ model = model.to(device)
 # Evaluation
 acc, report, cm = evaluate_model(model, test_loader, device)
 
-print("\n✅ Test Accuracy:", acc)
-print("\n📊 Classification Report:\n", report)
-print("\n🧩 Confusion Matrix:\n", cm)
+print("\n Random Forest Test Accuracy:", acc)
+print("\n Classification Report:\n", report)
+print("\n Confusion Matrix:\n", cm)

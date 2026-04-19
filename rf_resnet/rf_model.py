@@ -34,7 +34,7 @@ model = torch.nn.Sequential(*list(model.children())[:-1])
 model = model.to(device)
 model.eval()
 
-# 🔥 Feature extraction function
+#  Feature extraction function
 def extract_features(loader):
     features = []
     labels = []
@@ -59,7 +59,7 @@ X_test, y_test = extract_features(test_loader)
 
 print("Feature shape:", X_train.shape)
 
-# 🌲 Train Random Forest
+#  Train Random Forest
 rf = RandomForestClassifier(n_estimators=100, random_state=42)
 rf.fit(X_train, y_train)
 
@@ -71,9 +71,9 @@ acc = accuracy_score(y_test, y_pred)
 report = classification_report(y_test, y_pred)
 cm = confusion_matrix(y_test, y_pred)
 
-print("\n✅ Random Forest Accuracy:", acc)
-print("\n📊 Classification Report:\n", report)
-print("\n🧩 Confusion Matrix:\n", cm)
+print("\n Random Forest Accuracy:", acc)
+print("\n Classification Report:\n", report)
+print("\n Confusion Matrix:\n", cm)
 
 rf_path = models_dir / "rf_on_resnet_features.pkl"
 joblib.dump(rf, rf_path)
@@ -96,5 +96,5 @@ with (models_dir / "rf_on_resnet_metadata.json").open("w", encoding="utf-8") as 
         indent=2,
     )
 
-print(f"✅ Random Forest model saved: {rf_path}")
-print(f"✅ Feature extractor weights saved: {feature_extractor_path}")
+print(f" Random Forest model saved: {rf_path}")
+print(f" Feature extractor weights saved: {feature_extractor_path}")

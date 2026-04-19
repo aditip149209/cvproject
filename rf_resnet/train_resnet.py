@@ -68,5 +68,5 @@ torchscript_model.save(str(torchscript_path))
 with (models_dir / "resnet18_classes.json").open("w", encoding="utf-8") as f:
     json.dump({"classes": train_dataset.classes}, f, indent=2)
 
-print(f"✅ Saved PyTorch state_dict: {weights_path}")
-print(f"✅ Saved TorchScript model: {torchscript_path}")
+print(f" Saved PyTorch state_dict: {weights_path}")
+print(f" Saved TorchScript model: {torchscript_path}")
